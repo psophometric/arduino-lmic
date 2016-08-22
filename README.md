@@ -13,8 +13,8 @@ see the PDF file in the doc subdirectory.
 This library requires Arduino IDE version 1.6.6 or above, since it
 requires C99 mode to be enabled by default.
 
-Installing
-----------
+Installing for Arduino
+----------------------
 To install this library:
 
  - install it using the Arduino Library manager ("Sketch" -> "Include
@@ -25,6 +25,75 @@ To install this library:
  - clone this git repository into your sketchbook/libraries folder.
 
 For more info, see https://www.arduino.cc/en/Guide/Libraries
+
+
+
+Installing for Raspberry PI
+---------------------------
+
+You need 3 dependencies:
+
+- build essential package `apt-get install build-essential`
+- other tools packages `apt-get install git-core wget`
+- [bcm2835_library](http://www.airspayce.com/mikem/bcm2835/) see installation
+
+Clone branch repository
+```shell
+git clone -b rpi https://github.com/hallard/RadioHead
+```
+
+**Connection and pins definition**
+
+Boards pins (Chip Select, IRQ line, Reset and LED) definition are set in the samples sketch when needed see [Raspberry PI](https://github.com/hallard/arduino-lmic/tree/rpi/examples/raspi) examples folder, for example [LoRasPI](https://github.com/hallard/LoRasPI) board V1
+
+
+```cpp
+// LoRasPi board 
+// see https://github.com/hallard/LoRasPI
+#define RF_LED_PIN RPI_V2_GPIO_P1_16 // Led on GPIO23 so P1 connector pin #16
+#define RF_CS_PIN  RPI_V2_GPIO_P1_24 // Slave Select on CE0 so P1 connector pin #24
+#define RF_IRQ_PIN RPI_V2_GPIO_P1_22 // IRQ on GPIO25 so P1 connector pin #22
+#define RF_RST_PIN RPI_V2_GPIO_P1_15 // RST on GPIO22 so P1 connector pin #15
+
+// Pin mapping
+const lmic_pinmap lmic_pins = { 
+    .nss  = RF_CS_PIN,
+    .rxtx = LMIC_UNUSED_PIN,
+    .rst  = RF_RST_PIN,
+    .dio  = {LMIC_UNUSED_PIN, LMIC_UNUSED_PIN, LMIC_UNUSED_PIN},
+};
+
+```
+
+Then in your code you'll have exposed RF_CS_PIN, RF_IRQ_PIN, RF_RST_PIN and RF_LED_PIN and you'll be able to do some `#ifdef RF_LED_LIN` for example. See [ttn-otaa](https://github.com/hallard/arduino-lmic/tree/rpi/examples/raspi/ttn-otaa/ttn-otaa.cpp) sample code.
+
+**Going further with examples:**
+
+go to example folder here spi_scan
+```shell
+cd arduino-lmic/examples/raspi/spi_scan
+```
+Build executable
+```shell
+root@pi03(rw):~/arduino-lmic/examples/raspi/spi_scan# make
+g++ -DRASPBERRY_PI -DBCM2835_NO_DELAY_COMPATIBILITY -c -I../../.. spi_scan.c
+g++ spi_scan.o -lbcm2835  -o spi_scan
+root@pi03(rw):~/arduino-lmic/examples/raspi/spi_scan
+```
+And run 
+```shell
+root@pi03(rw):~/arduino-lmic/examples/raspi/spi_scan# ./spi_scan
+Checking register(0x42) with CS=GPIO06 => Nothing!
+Checking register(0x10) with CS=GPIO06 => Nothing!
+Checking register(0x42) with CS=GPIO08 => SX1276 RF95/96 (V=0x12)
+Checking register(0x10) with CS=GPIO08 => Nothing!
+Checking register(0x42) with CS=GPIO07 => Nothing!
+Checking register(0x10) with CS=GPIO07 => Nothing!
+Checking register(0x42) with CS=GPIO26 => Nothing!
+Checking register(0x10) with CS=GPIO26 => Nothing!
+```
+And voila! with [LoRasPi](https://github.com/hallard/LoRasPI) board RFM95 dedected on SPI with GPIO8 (CE0)
+
 
 Features
 --------
@@ -405,3 +474,8 @@ Most source files in this repository are made available under the
 Eclipse Public License v1.0. The examples which use a more liberal
 license. Some of the AES code is available under the LGPL. Refer to each
 individual source file for more details.
+
+
+
+
+
