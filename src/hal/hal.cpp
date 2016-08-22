@@ -8,11 +8,17 @@
  * This the HAL to run LMIC on top of the Arduino environment.
  *******************************************************************************/
 
+#ifdef RASPBERRY_PI
+#include "raspi/raspi.h"
+#else
 #include <Arduino.h>
 #include <SPI.h>
+#endif
 #include "../lmic.h"
 #include "hal.h"
 #include <stdio.h>
+
+
 
 // -----------------------------------------------------------------------------
 // I/O
@@ -39,6 +45,13 @@ static void hal_io_init () {
         if (lmic_pins.dio[i] != LMIC_UNUSED_PIN) {
             check_dio = 1; // we need to use DIO line check
             pinMode(lmic_pins.dio[i], INPUT);
+            
+#ifdef RASPBERRY_PI
+            // Enable pull down an rising edge detection on this one
+            bcm2835_gpio_set_pud(lmic_pins.dio[i], BCM2835_GPIO_PUD_DOWN);
+            bcm2835_gpio_ren(lmic_pins.dio[i]);
+#endif
+
         }
     }
 }
@@ -69,13 +82,25 @@ static void hal_io_check() {
     if (check_dio == 1) {
         uint8_t i;
         for (i = 0; i < NUM_DIO; ++i) {
+          
+#ifdef RASPBERRY_PI
+            // Rising edge fired ?
+            if (bcm2835_gpio_eds(lmic_pins.dio[i])) {
+                // Now clear the eds flag by setting it to 1
+                bcm2835_gpio_set_eds(lmic_pins.dio[i]);
+                // Handle pseudo interrupt
+                radio_irq_handler(i);
+            }
+#else
             if (dio_states[i] != digitalRead(lmic_pins.dio[i])) {
                 dio_states[i] = !dio_states[i];
                 if (dio_states[i]) {
                     radio_irq_handler(i);
                 }
             }
-        }
+#endif
+        } // For
+        
     } else {
         // Check IRQ flags in radio module
         if ( radio_has_irq() ) 
@@ -85,11 +110,16 @@ static void hal_io_check() {
 // -----------------------------------------------------------------------------
 // SPI
 
-static const SPISettings settings(10E6, MSBFIRST, SPI_MODE0);
-
 static void hal_spi_init () {
     SPI.begin();
 }
+
+#ifdef RASPBERRY_PI
+    // Clock divider / 32 = 8MHz
+    static const SPISettings settings(BCM2835_SPI_CLOCK_DIVIDER_32 , BCM2835_SPI_BIT_ORDER_MSBFIRST, BCM2835_SPI_MODE0);
+#else
+    static const SPISettings settings(10E6, MSBFIRST, SPI_MODE0);
+#endif
 
 void hal_pin_nss (u1_t val) {
     if (!val)
@@ -100,6 +130,7 @@ void hal_pin_nss (u1_t val) {
     //Serial.println(val?">>":"<<");
     digitalWrite(lmic_pins.nss, val);
 }
+
 
 // perform SPI transaction with radio
 u1_t hal_spi (u1_t out) {
