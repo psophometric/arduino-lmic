@@ -39,7 +39,7 @@ You need 3 dependencies:
 
 Clone branch repository
 ```shell
-git clone -b rpi https://github.com/hallard/RadioHead
+git clone -b rpi https://github.com/hallard/arduino-lmic
 ```
 
 **Connection and pins definition**
