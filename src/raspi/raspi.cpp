@@ -120,14 +120,39 @@ unsigned int micros() {
 }
 
 char * getSystemTime(char * time_buff, int len) {
-    time_t timer;
+    time_t t;
     struct tm* tm_info;
     
-    time(&timer); 
-    tm_info = localtime(&timer);
-    strftime(time_buff, len, "%H:%M:%S", tm_info);
+    t = time(NULL); 
+    tm_info = localtime(&t);
+    if (tm_info) {
+      if (strftime(time_buff, len, "%H:%M:%S", tm_info)){
+        
+      } else {
+        strncpy(time_buff, "strftime() ERR", len);
+      }
+    } else {
+      strncpy(time_buff, "localtime() ERR", len);
+    }
     return time_buff;
 }
+
+// Display Key
+// ===========
+void printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb) 
+{
+  uint8_t start=lsb?len:0;
+  uint8_t end = lsb?0:len;
+  const uint8_t * p ;
+
+  printf("%s : ", name);
+  for (uint8_t i=0; i<len ; i++) {
+    p = lsb ? key+len-i-1 : key+i;
+    printf("%02X", *p);
+  }
+  printf("\n");
+}
+
 
 bool getDevEuiFromMac(uint8_t * pdeveui) {
   struct ifaddrs *ifaddr=NULL;
@@ -177,13 +202,16 @@ bool getDevEuiFromMac(uint8_t * pdeveui) {
                 for ( i=0; i<6 ; i++) {
                   *p++ = s->sll_addr[5-i];
                 }
-                
-                p = pdeveui;
-                printf("DEVEUI[8]={");
+              
+/*              
+                p = pdeveui+8;
+                printf("DevEUI : ");
                 for ( i=0 ; i<8 ; i++) {
-                  printf(" 0x%02x,", *p++);
-                }
-                printf(" }; // %s\n", ifa->ifa_name);
+                  fprintf( stdout, "%02X", *--p);
+                }               
+                printf(" (based on %s)\n", ifa->ifa_name);
+*/              
+                
                 gotit = true;
                 close(fd);
                 break;
