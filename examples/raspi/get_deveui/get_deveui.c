@@ -75,15 +75,37 @@ int main (int argc, const char * argv[])
           
           //active interface or all wanted
           if (all || up) {
-            // Display line code TTN format 
-            fprintf(stdout, "// %s %s %s\n", ifa->ifa_name, ifa->ifa_flags&IFF_UP?"Up":"Down", up?"Linked":"No Link");
-            //fprintf(stdout, "\n");
-            fprintf(stdout, "static const u1_t PROGMEM DEVEUI[8]={");
-            for (int i=0; i<s->sll_halen; i++) {
-              fprintf(stdout, " 0x%02x,", (s->sll_addr[i]));
+            char deveui[8];
+            char *p = deveui;
+            // deveui is LSB to we reverse it so TTN display 
+            // will remain the same as MAC address
+            // MAC is 6 bytes, devEUI 8, set first 2 ones 
+            // with an arbitrary value
+            *p++ = 0x00;
+            *p++ = 0x04;
+            // Then next 6 bytes are mac address still reversed
+            for ( i=0; i<6 ; i++) {
+              *p++ = s->sll_addr[5-i];
             }
-            fprintf(stdout, " 0x00, 0x00 }; // %s\n", ifa->ifa_name);
-          }
+            
+            // Device Info
+            fprintf(stdout, "// %s %s %s ", ifa->ifa_name, ifa->ifa_flags&IFF_UP?"Up":"Down", up?"Linked":"No Link");
+            // Raw format for ttnctl
+            p = deveui+8;
+            fprintf(stdout, "TTN Dashboard DEVEUI format ");
+            for ( i=0 ; i<8 ; i++) {
+              fprintf( stdout, "%02X", *--p);
+            }
+                        
+            p = deveui;
+            // LSB format for application code
+            fprintf(stdout, "\nstatic const u1_t PROGMEM DEVEUI[8]={");
+            for ( i=0 ; i<8 ; i++) {
+              fprintf( stdout, " 0x%02x%c", *p++, i<7?',':' ');
+            }
+            fprintf( stdout, "}; // %s\n", ifa->ifa_name);
+                
+          } 
         }
       }
     }
