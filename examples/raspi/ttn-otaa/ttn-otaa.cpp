@@ -235,9 +235,10 @@ int main(void)
     while(!force_exit) {
       os_runloop_once();
 			
-			// We're on a multitasking OS let some time for others
-			// Without this one CPU is 99% and with this one just 3%
-			bcm2835_delay(1);
+      // We're on a multitasking OS let some time for others
+      // Without this one CPU is 99% and with this one just 3%
+      // On a Raspberry PI 3
+      bcm2835_delay(1);
     }
 
     // We're here because we need to exit, do it clean
