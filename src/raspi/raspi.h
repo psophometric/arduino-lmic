@@ -139,6 +139,7 @@ extern SerialSimulator Serial;
 extern "C"{
 #endif
 
+void printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb); 
 bool getDevEuiFromMac(uint8_t *);
 char *  getSystemTime(char * time_buff, int len);
 void pinMode(unsigned char, unsigned char);
