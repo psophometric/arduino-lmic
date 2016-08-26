@@ -84,9 +84,9 @@ const lmic_pinmap lmic_pins = {
 };
 
 void do_send(osjob_t* j) {
-		char sysTime[16];
-		getSystemTime(sysTime , sizeof(sysTime));
-    printf("%s: ", sysTime);
+		char strTime[16];
+		getSystemTime(strTime , sizeof(strTime));
+    printf("%s: ", strTime);
 
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND) {
@@ -94,15 +94,15 @@ void do_send(osjob_t* j) {
     } else {
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
-        printf("%s: Packet queued\n");
+        printf("Packet queued\n");
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void onEvent (ev_t ev) {
-		char sysTime[16];
-		getSystemTime(sysTime , sizeof(sysTime));
-    printf("%s: ", sysTime);
+		char strTime[16];
+		getSystemTime(strTime , sizeof(strTime));
+    printf("%s: ", strTime);
  
     switch(ev) {
         case EV_SCAN_TIMEOUT:
@@ -139,9 +139,9 @@ void onEvent (ev_t ev) {
         case EV_TXCOMPLETE:
             printf("EV_TXCOMPLETE (includes waiting for RX windows)\n");
             if (LMIC.txrxFlags & TXRX_ACK)
-              printf("%s Received ack\n", sysTime);
+              printf("%s Received ack\n", strTime);
             if (LMIC.dataLen) {
-              printf("%s Received %d bytes of payload\n", LMIC.dataLen, sysTime);
+              printf("%s Received %d bytes of payload\n", strTime, LMIC.dataLen);
             }
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
@@ -200,6 +200,19 @@ int main(void)
         fprintf( stderr, "bcm2835_init() Failed\n\n" );
         return 1;
     }
+		
+		// LMIC may not have used callback to fill 
+		// all EUI buffer so we do it to a temp
+		// buffer to be able to display them
+		uint8_t eui[32];
+		
+		getDevEuiFromMac(eui);
+		printKey("DevEUI", eui, sizeof(DEVEUI),    true);
+		memcpy(eui, APPEUI, sizeof(APPEUI));
+		printKey("AppEUI", eui, sizeof(APPEUI), true);
+		memcpy(eui, APPKEY, sizeof(APPKEY));
+		printKey("AppKey", eui, sizeof(APPKEY), false);
+
 
 #ifdef RF_LED_PIN
     // Light off on board LED
@@ -221,6 +234,10 @@ int main(void)
     
     while(!force_exit) {
       os_runloop_once();
+			
+			// We're on a multitasking OS let some time for others
+			// Without this one CPU is 99% and with this one just 3%
+			bcm2835_delay(1);
     }
 
     // We're here because we need to exit, do it clean
