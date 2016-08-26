@@ -140,6 +140,7 @@ extern "C"{
 #endif
 
 bool getDevEuiFromMac(uint8_t *);
+char *  getSystemTime(char * time_buff, int len);
 void pinMode(unsigned char, unsigned char);
 void digitalWrite(unsigned char, unsigned char);
 unsigned char digitalRead(unsigned char) ;

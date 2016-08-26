@@ -119,6 +119,16 @@ unsigned int micros() {
   return (uint32_t)(now - epochMicro) ;
 }
 
+char * getSystemTime(char * time_buff, int len) {
+    time_t timer;
+    struct tm* tm_info;
+    
+    time(&timer); 
+    tm_info = localtime(&timer);
+    strftime(time_buff, len, "%H:%M:%S", tm_info);
+    return time_buff;
+}
+
 bool getDevEuiFromMac(uint8_t * pdeveui) {
   struct ifaddrs *ifaddr=NULL;
   struct ifaddrs *ifa = NULL;
@@ -154,17 +164,26 @@ bool getDevEuiFromMac(uint8_t * pdeveui) {
           if ( (fd = open( fname, O_RDONLY)) > 0 ){
             char buf[2];
             if ( read(fd, buf, 2) > 0 ) {
-              // only first active interface 
+              // only first active interface "up"
               if ( buf[0]=='u' && buf[1]=='p' ) {
-                printf("DEVEUI[8]={");
-                for (int i=0; i<s->sll_halen; i++) {
-                  printf(" 0x%02x,", (s->sll_addr[i]));
-                  *pdeveui++ = s->sll_addr[i];
+                uint8_t * p = pdeveui;
+                // deveui is LSB to we reverse it so TTN display 
+                // will remain the same as MAC address
+                // MAC is 6 bytes, devEUI 8, set first 2 ones 
+                // with an arbitrary value
+                *p++ = 0x00;
+                *p++ = 0x04;
+                // Then next 6 bytes are mac address still reversed
+                for ( i=0; i<6 ; i++) {
+                  *p++ = s->sll_addr[5-i];
                 }
-                printf(" 0x00, 0x00 }; // %s\n", ifa->ifa_name);
-                // DevEUI has 8 bytes, MAC only 6 add 2 zero
-                *pdeveui++ = 0x00;
-                *pdeveui = 0x00;
+                
+                p = pdeveui;
+                printf("DEVEUI[8]={");
+                for ( i=0 ; i<8 ; i++) {
+                  printf(" 0x%02x,", *p++);
+                }
+                printf(" }; // %s\n", ifa->ifa_name);
                 gotit = true;
                 close(fd);
                 break;
@@ -178,7 +197,7 @@ bool getDevEuiFromMac(uint8_t * pdeveui) {
     // Free our Linked list
     freeifaddrs(ifaddr);
   }
-  // just in case of error put deveui to 12345678
+  // just in case of error put deveui to 0102030405060708
   if (!gotit) {
     for (i=1; i<=8; i++) {
       *pdeveui++=i;
