@@ -39,15 +39,15 @@
 
 // This EUI must be in little-endian format, so least-significant-byte
 // first. When copying an EUI from ttnctl output, this means to reverse
-// the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,
-// 0x70.
-//static const u1_t PROGMEM APPEUI[8]={ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const u1_t PROGMEM APPEUI[8]={ 0xAD, 0x04, 0x00, 0xD0, 0x7E, 0xD5, 0xB3, 0x70 };
+// the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,0x70.
+static const u1_t PROGMEM APPEUI[8]={ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 
 // This should also be in little endian format, see above.
-//static const u1_t PROGMEM DEVEUI[8]={ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-//static const u1_t PROGMEM DEVEUI[8]={ 0x50, 0xB0, 0x7A, 0x0A, 0x06, 0x00, 0x00, 0x00 };
+static const u1_t PROGMEM DEVEUI[8]={ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+// Here on Raspi we use part of MAC Address do define devEUI so 
+// This one above is not used, but you can still old method 
+// reverting the comments on the 2 following line
 //void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 void os_getDevEui (u1_t* buf) { getDevEuiFromMac(buf); }
 
@@ -55,8 +55,7 @@ void os_getDevEui (u1_t* buf) { getDevEuiFromMac(buf); }
 // number but a block of memory, endianness does not really apply). In
 // practice, a key taken from ttnctl can be copied as-is.
 // The key shown here is the semtech default key.
-//static const u1_t PROGMEM APPKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
-static const u1_t PROGMEM APPKEY[16] = { 0xF9, 0x02, 0xAF, 0x83, 0x40, 0x61, 0x53, 0x79, 0x17, 0xF0, 0xB3, 0xEC, 0x53, 0x0A, 0x11, 0x1B };
+static const u1_t PROGMEM APPKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
 static uint8_t mydata[] = "Raspi LMIC!";
@@ -64,7 +63,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty)
 // cycle limitations).
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 120;
 
 //Flag for Ctrl-C
 volatile sig_atomic_t force_exit = 0;
@@ -85,26 +84,25 @@ const lmic_pinmap lmic_pins = {
 };
 
 void do_send(osjob_t* j) {
+		char sysTime[16];
+		getSystemTime(sysTime , sizeof(sysTime));
+    printf("%s: ", sysTime);
+
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND) {
         printf("OP_TXRXPEND, not sending\n");
     } else {
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
-        printf("Packet queued\n");
+        printf("%s: Packet queued\n");
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void onEvent (ev_t ev) {
-    time_t timer;
-    char time_buff[16];
-    struct tm* tm_info;
-
-    time(&timer);
-    tm_info = localtime(&timer);
-    strftime(time_buff, sizeof(time_buff), "%H:%M:%S", tm_info);
-    printf("%s: ", time_buff);
+		char sysTime[16];
+		getSystemTime(sysTime , sizeof(sysTime));
+    printf("%s: ", sysTime);
  
     switch(ev) {
         case EV_SCAN_TIMEOUT:
@@ -141,9 +139,9 @@ void onEvent (ev_t ev) {
         case EV_TXCOMPLETE:
             printf("EV_TXCOMPLETE (includes waiting for RX windows)\n");
             if (LMIC.txrxFlags & TXRX_ACK)
-              printf("Received ack\n");
+              printf("%s Received ack\n", sysTime);
             if (LMIC.dataLen) {
-              printf("Received %d bytes of payload\n", LMIC.dataLen);
+              printf("%s Received %d bytes of payload\n", LMIC.dataLen, sysTime);
             }
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
