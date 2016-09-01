@@ -37,9 +37,7 @@ void SPIClass::beginTransaction(SPISettings settings) {
   bcm2835_spi_setBitOrder(settings.bitOrder);
   //Set SPI data mode
   bcm2835_spi_setDataMode(settings.dataMode);
-}
 
-void SPIClass::endTransaction() {
   uint8_t cs = lmic_pins.nss;
   // This one was really tricky and spent some time to find
   // it. When SPI transaction is done bcm2835 can setup CE0/CE1
@@ -58,6 +56,10 @@ void SPIClass::endTransaction() {
     bcm2835_gpio_fsel( cs, BCM2835_GPIO_FSEL_OUTP );
     bcm2835_gpio_write( cs, HIGH);
   }
+	
+}
+
+void SPIClass::endTransaction() {
 }
   
 byte SPIClass::transfer(byte _data) {
@@ -137,6 +139,42 @@ char * getSystemTime(char * time_buff, int len) {
     return time_buff;
 }
 
+
+void printConfig(const uint8_t led) 
+{
+    printf( "RFM95 device configuration\n" );
+    if (lmic_pins.nss ==LMIC_UNUSED_PIN ) {
+        printf( "!! CS pin is not defined !!\n" );
+    } else {
+        printf( "CS=GPIO%d", lmic_pins.nss );
+    }
+    
+    printf( " RST=" );
+    if (lmic_pins.rst==LMIC_UNUSED_PIN ) {
+				printf( "Unused" );
+    } else {
+				printf( "GPIO%d", lmic_pins.rst );
+    }
+
+    printf( " LED=" );
+    if ( led==LMIC_UNUSED_PIN ) {
+				printf( "Unused" );
+    } else {
+				printf( "GPIO%d", led );
+    }
+		
+    // DIO 
+    for (uint8_t i=0; i<3 ; i++) {
+				printf( " DIO%d=", i );
+				if (lmic_pins.dio[i]==LMIC_UNUSED_PIN ) {
+						printf( "Unused" );
+				} else {
+						printf( "GPIO%d", lmic_pins.dio[i] );
+				}
+    }
+    printf( "\n" );
+}
+		
 // Display Key
 // ===========
 void printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb) 
