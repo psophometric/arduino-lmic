@@ -38,6 +38,7 @@
 #include <hal/hal.h>
 
 // This EUI must be in little-endian format, so least-significant-byte
+
 // first. When copying an EUI from ttnctl output, this means to reverse
 // the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,0x70.
 static const u1_t PROGMEM APPEUI[8]={ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -70,10 +71,25 @@ volatile sig_atomic_t force_exit = 0;
 
 // LoRasPi board 
 // see https://github.com/hallard/LoRasPI
-#define RF_LED_PIN RPI_V2_GPIO_P1_16 // Led on GPIO23 so P1 connector pin #16
+//#define RF_LED_PIN RPI_V2_GPIO_P1_16 // Led on GPIO23 so P1 connector pin #16
+//#define RF_CS_PIN  RPI_V2_GPIO_P1_24 // Slave Select on CE0 so P1 connector pin #24
+//#define RF_IRQ_PIN RPI_V2_GPIO_P1_22 // IRQ on GPIO25 so P1 connector pin #22
+//#define RF_RST_PIN RPI_V2_GPIO_P1_15 // RST on GPIO22 so P1 connector pin #15
+
+// Raspberri PI Lora Gateway for multiple modules 
+// see https://github.com/hallard/RPI-Lora-Gateway
+// Module 1 on board RFM95 868 MHz (example)
+#define RF_LED_PIN RPI_V2_GPIO_P1_07 // Led on GPIO4 so P1 connector pin #7
 #define RF_CS_PIN  RPI_V2_GPIO_P1_24 // Slave Select on CE0 so P1 connector pin #24
 #define RF_IRQ_PIN RPI_V2_GPIO_P1_22 // IRQ on GPIO25 so P1 connector pin #22
-#define RF_RST_PIN RPI_V2_GPIO_P1_15 // RST on GPIO22 so P1 connector pin #15
+#define RF_RST_PIN RPI_V2_GPIO_P1_29 // Reset on GPIO5 so P1 connector pin #29
+
+
+// Dragino Raspberry PI hat (no onboard led)
+// see https://github.com/dragino/Lora
+//#define RF_CS_PIN  RPI_V2_GPIO_P1_22 // Slave Select on GPIO25 so P1 connector pin #22
+//#define RF_IRQ_PIN RPI_V2_GPIO_P1_07 // IRQ on GPIO4 so P1 connector pin #7
+//#define RF_RST_PIN RPI_V2_GPIO_P1_11 // Reset on GPIO17 so P1 connector pin #11
 
 // Pin mapping
 const lmic_pinmap lmic_pins = { 
@@ -83,15 +99,20 @@ const lmic_pinmap lmic_pins = {
     .dio  = {LMIC_UNUSED_PIN, LMIC_UNUSED_PIN, LMIC_UNUSED_PIN},
 };
 
+#ifndef RF_LED_PIN
+#define RF_LED_PIN NOT_A_PIN  
+#endif
+
 void do_send(osjob_t* j) {
-		char strTime[16];
-		getSystemTime(strTime , sizeof(strTime));
+    char strTime[16];
+    getSystemTime(strTime , sizeof(strTime));
     printf("%s: ", strTime);
 
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND) {
         printf("OP_TXRXPEND, not sending\n");
     } else {
+        digitalWrite(RF_LED_PIN, HIGH);
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
         printf("Packet queued\n");
@@ -100,42 +121,42 @@ void do_send(osjob_t* j) {
 }
 
 void onEvent (ev_t ev) {
-		char strTime[16];
-		getSystemTime(strTime , sizeof(strTime));
+    char strTime[16];
+    getSystemTime(strTime , sizeof(strTime));
     printf("%s: ", strTime);
  
     switch(ev) {
         case EV_SCAN_TIMEOUT:
             printf("EV_SCAN_TIMEOUT\n");
-            break;
+        break;
         case EV_BEACON_FOUND:
             printf("EV_BEACON_FOUND\n");
-            break;
+        break;
         case EV_BEACON_MISSED:
             printf("EV_BEACON_MISSED\n");
-            break;
+        break;
         case EV_BEACON_TRACKED:
             printf("EV_BEACON_TRACKED\n");
-            break;
+        break;
         case EV_JOINING:
             printf("EV_JOINING\n");
-            break;
+        break;
         case EV_JOINED:
-           printf("EV_JOINED\n");
-
+            printf("EV_JOINED\n");
+            digitalWrite(RF_LED_PIN, LOW);
             // Disable link check validation (automatically enabled
             // during join, but not supported by TTN at this time).
             LMIC_setLinkCheckMode(0);
-            break;
+        break;
         case EV_RFU1:
             printf("EV_RFU1\n");
-            break;
+        break;
         case EV_JOIN_FAILED:
             printf("EV_JOIN_FAILED\n");
-            break;
+        break;
         case EV_REJOIN_FAILED:
             printf("EV_REJOIN_FAILED\n");
-            break;
+        break;
         case EV_TXCOMPLETE:
             printf("EV_TXCOMPLETE (includes waiting for RX windows)\n");
             if (LMIC.txrxFlags & TXRX_ACK)
@@ -143,28 +164,29 @@ void onEvent (ev_t ev) {
             if (LMIC.dataLen) {
               printf("%s Received %d bytes of payload\n", strTime, LMIC.dataLen);
             }
+            digitalWrite(RF_LED_PIN, LOW);
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
-            break;
+        break;
         case EV_LOST_TSYNC:
             printf("EV_LOST_TSYNC\n");
-            break;
+        break;
         case EV_RESET:
             printf("EV_RESET\n");
-            break;
+        break;
         case EV_RXCOMPLETE:
             // data received in ping slot
             printf("EV_RXCOMPLETE\n");
-            break;
+        break;
         case EV_LINK_DEAD:
             printf("EV_LINK_DEAD\n");
-            break;
+        break;
         case EV_LINK_ALIVE:
             printf("EV_LINK_ALIVE\n");
-            break;
-         default:
+        break;
+        default:
             printf("Unknown event\n");
-            break;
+        break;
     }
 }
 
@@ -200,25 +222,25 @@ int main(void)
         fprintf( stderr, "bcm2835_init() Failed\n\n" );
         return 1;
     }
-		
-		// LMIC may not have used callback to fill 
-		// all EUI buffer so we do it to a temp
-		// buffer to be able to display them
-		uint8_t eui[32];
-		
-		getDevEuiFromMac(eui);
-		printKey("DevEUI", eui, sizeof(DEVEUI),    true);
-		memcpy(eui, APPEUI, sizeof(APPEUI));
-		printKey("AppEUI", eui, sizeof(APPEUI), true);
-		memcpy(eui, APPKEY, sizeof(APPKEY));
-		printKey("AppKey", eui, sizeof(APPKEY), false);
 
+		// Show board config
+    printConfig(RF_LED_PIN);
 
-#ifdef RF_LED_PIN
+    // LMIC may not have used callback to fill 
+    // all EUI buffer so we do it to a temp
+    // buffer to be able to display them
+    uint8_t eui[32];
+    
+    getDevEuiFromMac(eui);
+    printKey("DevEUI", eui, sizeof(DEVEUI), true);
+    memcpy(eui, APPEUI, sizeof(APPEUI));
+    printKey("AppEUI", eui, sizeof(APPEUI), true);
+    memcpy(eui, APPKEY, sizeof(APPKEY));
+    printKey("AppKey", eui, sizeof(APPKEY), false);
+
     // Light off on board LED
     pinMode(RF_LED_PIN, OUTPUT);
     digitalWrite(RF_LED_PIN, HIGH);
-#endif
 
     // LMIC init
     os_init();
@@ -228,25 +250,19 @@ int main(void)
     // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);
 
-#ifdef RF_LED_PIN
-    digitalWrite(RF_LED_PIN, LOW);
-#endif
-    
     while(!force_exit) {
       os_runloop_once();
-			
+      
       // We're on a multitasking OS let some time for others
       // Without this one CPU is 99% and with this one just 3%
       // On a Raspberry PI 3
-      bcm2835_delay(1);
+      usleep(1000);
     }
 
     // We're here because we need to exit, do it clean
 
-#ifdef RF_LED_PIN
     // Light off on board LED
     digitalWrite(RF_LED_PIN, LOW);
-#endif
     
     // module CS line High
     digitalWrite(lmic_pins.nss, HIGH);
