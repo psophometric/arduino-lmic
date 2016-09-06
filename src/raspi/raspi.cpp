@@ -19,10 +19,10 @@ void SPIClass::begin() {
   
   if (!bcm2835_spi_begin()) {
     printf( "bcm2835_spi_begin() failed. Are you running as root??\n");
-  }
-  
-  // LMIC Library code control CS line
-  bcm2835_spi_chipSelect(BCM2835_SPI_CS_NONE);  
+  } else {
+		// LMIC Library code control CS line
+		bcm2835_spi_chipSelect(BCM2835_SPI_CS_NONE);  
+	}
 }
 
 void SPIClass::end() {
@@ -56,7 +56,6 @@ void SPIClass::beginTransaction(SPISettings settings) {
     bcm2835_gpio_fsel( cs, BCM2835_GPIO_FSEL_OUTP );
     bcm2835_gpio_write( cs, HIGH);
   }
-	
 }
 
 void SPIClass::endTransaction() {
@@ -72,7 +71,6 @@ void pinMode(unsigned char pin, unsigned char mode) {
   if (pin == LMIC_UNUSED_PIN) {
     return;
   }
-  
   if (mode == OUTPUT) {
     bcm2835_gpio_fsel(pin,BCM2835_GPIO_FSEL_OUTP);
   } else {
@@ -84,7 +82,7 @@ void digitalWrite(unsigned char pin, unsigned char value) {
   if (pin == LMIC_UNUSED_PIN) {
     return;
   }
-  bcm2835_gpio_write(pin,value);
+  bcm2835_gpio_write(pin, value);
 }
 
 unsigned char digitalRead(unsigned char pin) {
@@ -122,57 +120,54 @@ unsigned int micros() {
 }
 
 char * getSystemTime(char * time_buff, int len) {
-    time_t t;
-    struct tm* tm_info;
-    
-    t = time(NULL); 
-    tm_info = localtime(&t);
-    if (tm_info) {
-      if (strftime(time_buff, len, "%H:%M:%S", tm_info)){
-        
-      } else {
-        strncpy(time_buff, "strftime() ERR", len);
-      }
-    } else {
-      strncpy(time_buff, "localtime() ERR", len);
-    }
-    return time_buff;
+	time_t t;
+	struct tm* tm_info;
+	
+	t = time(NULL); 
+	tm_info = localtime(&t);
+	if (tm_info) {
+		if (strftime(time_buff, len, "%H:%M:%S", tm_info)) {
+		} else {
+			strncpy(time_buff, "strftime() ERR", len);
+		}
+	} else {
+		strncpy(time_buff, "localtime() ERR", len);
+	}
+	return time_buff;
 }
 
+void printConfig(const uint8_t led) {
+	printf( "RFM95 device configuration\n" );
+	if (lmic_pins.nss ==LMIC_UNUSED_PIN ) {
+		printf( "!! CS pin is not defined !!\n" );
+	} else {
+		printf( "CS=GPIO%d", lmic_pins.nss );
+	}
+	
+	printf( " RST=" );
+	if (lmic_pins.rst==LMIC_UNUSED_PIN ) {
+		printf( "Unused" );
+	} else {
+		printf( "GPIO%d", lmic_pins.rst );
+	}
 
-void printConfig(const uint8_t led) 
-{
-    printf( "RFM95 device configuration\n" );
-    if (lmic_pins.nss ==LMIC_UNUSED_PIN ) {
-        printf( "!! CS pin is not defined !!\n" );
-    } else {
-        printf( "CS=GPIO%d", lmic_pins.nss );
-    }
-    
-    printf( " RST=" );
-    if (lmic_pins.rst==LMIC_UNUSED_PIN ) {
-				printf( "Unused" );
-    } else {
-				printf( "GPIO%d", lmic_pins.rst );
-    }
-
-    printf( " LED=" );
-    if ( led==LMIC_UNUSED_PIN ) {
-				printf( "Unused" );
-    } else {
-				printf( "GPIO%d", led );
-    }
-		
-    // DIO 
-    for (uint8_t i=0; i<3 ; i++) {
-				printf( " DIO%d=", i );
-				if (lmic_pins.dio[i]==LMIC_UNUSED_PIN ) {
-						printf( "Unused" );
-				} else {
-						printf( "GPIO%d", lmic_pins.dio[i] );
-				}
-    }
-    printf( "\n" );
+	printf( " LED=" );
+	if ( led==LMIC_UNUSED_PIN ) {
+		printf( "Unused" );
+	} else {
+		printf( "GPIO%d", led );
+	}
+	
+	// DIO 
+	for (uint8_t i=0; i<3 ; i++) {
+		printf( " DIO%d=", i );
+		if (lmic_pins.dio[i]==LMIC_UNUSED_PIN ) {
+			printf( "Unused" );
+		} else {
+			printf( "GPIO%d", lmic_pins.dio[i] );
+		}
+	}
+	printf( "\n" );
 }
 		
 // Display Key
@@ -240,20 +235,11 @@ bool getDevEuiFromMac(uint8_t * pdeveui) {
                 for ( i=0; i<6 ; i++) {
                   *p++ = s->sll_addr[5-i];
                 }
-              
-/*              
-                p = pdeveui+8;
-                printf("DevEUI : ");
-                for ( i=0 ; i<8 ; i++) {
-                  fprintf( stdout, "%02X", *--p);
-                }               
-                printf(" (based on %s)\n", ifa->ifa_name);
-*/              
                 
                 gotit = true;
                 close(fd);
                 break;
-              }
+              } 
             }
             close(fd);
           } 
@@ -263,6 +249,7 @@ bool getDevEuiFromMac(uint8_t * pdeveui) {
     // Free our Linked list
     freeifaddrs(ifaddr);
   }
+
   // just in case of error put deveui to 0102030405060708
   if (!gotit) {
     for (i=1; i<=8; i++) {

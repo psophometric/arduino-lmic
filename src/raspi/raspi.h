@@ -23,8 +23,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
-
 #include <lmic.h>
 #include "hal/hal.h"
 
@@ -139,12 +137,12 @@ extern SerialSimulator Serial;
 extern "C"{
 #endif
 
-void printConfig(const uint8_t led) ;
-void printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb); 
-bool getDevEuiFromMac(uint8_t *);
-char *  getSystemTime(char * time_buff, int len);
-void pinMode(unsigned char, unsigned char);
-void digitalWrite(unsigned char, unsigned char);
+void 		printConfig(const uint8_t led) ;
+void 		printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb); 
+bool 		getDevEuiFromMac(uint8_t *);
+char * 	getSystemTime(char * time_buff, int len);
+void 		pinMode(unsigned char, unsigned char);
+void 		digitalWrite(unsigned char, unsigned char);
 unsigned char digitalRead(unsigned char) ;
 void          initialiseEpoch();
 unsigned int  millis();
