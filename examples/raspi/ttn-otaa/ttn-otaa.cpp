@@ -223,20 +223,9 @@ int main(void)
         return 1;
     }
 
-		// Show board config
+	// Show board config
     printConfig(RF_LED_PIN);
-
-    // LMIC may not have used callback to fill 
-    // all EUI buffer so we do it to a temp
-    // buffer to be able to display them
-    uint8_t eui[32];
-    
-    getDevEuiFromMac(eui);
-    printKey("DevEUI", eui, sizeof(DEVEUI), true);
-    memcpy(eui, APPEUI, sizeof(APPEUI));
-    printKey("AppEUI", eui, sizeof(APPEUI), true);
-    memcpy(eui, APPKEY, sizeof(APPKEY));
-    printKey("AppKey", eui, sizeof(APPKEY), false);
+    printKeys();
 
     // Light off on board LED
     pinMode(RF_LED_PIN, OUTPUT);
