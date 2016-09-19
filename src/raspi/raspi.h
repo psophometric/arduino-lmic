@@ -139,6 +139,7 @@ extern "C"{
 
 void 		printConfig(const uint8_t led) ;
 void 		printKey(const char * name, const uint8_t * key, uint8_t len, bool lsb); 
+void 		printKeys() ;
 bool 		getDevEuiFromMac(uint8_t *);
 char * 	getSystemTime(char * time_buff, int len);
 void 		pinMode(unsigned char, unsigned char);
