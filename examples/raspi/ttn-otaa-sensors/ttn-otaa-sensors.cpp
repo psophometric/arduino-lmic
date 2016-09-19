@@ -337,20 +337,9 @@ int main ()
     
   printf("%s Starting\n", __BASEFILE__);
 
-  // LMIC may not have used callback to fill 
-	// all EUI buffer so we do it to a temp
-	// buffer to be able to display them
-	uint8_t eui[32];
-	
-	getDevEuiFromMac(eui);
-	printKey("DevEUI", eui, sizeof(DEVEUI), true);
-	memcpy(eui, APPEUI, sizeof(APPEUI));
-	printKey("AppEUI", eui, sizeof(APPEUI), true);
-	memcpy(eui, APPKEY, sizeof(APPKEY));
-	printKey("AppKey", eui, sizeof(APPKEY), false);
-
 	// Display Hardware RFM95 configuration
 	printConfig(RF_LED_PIN);
+  printKeys();
 
 	// Init GPIO bcm
 	if (!bcm2835_init()) {
